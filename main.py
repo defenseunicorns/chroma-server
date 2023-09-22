@@ -4,7 +4,11 @@ from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 from document_store import DocumentStore
 
+import os
+
 app = FastAPI()
+
+doc_store = DocumentStore()
 
 origins = [
     "http://localhost",
@@ -23,12 +27,17 @@ app.add_middleware(
 async def upload(file: UploadFile):
     print(file.filename)
     contents = await file.read()
-    print(contents)
-    return {"filename": file.filename}
+    file_path = "files/" + file.filename
+    if not os.path.isfile(file_path):
+        new_file = open(file_path, "xb")
+        new_file.write(contents)
+    doc_store.ingestor.process_file(file_path)
+    os.remove(file_path)
+    return {"filename": file.filename,
+            "succeed": True}
 
 @app.post("/query/")
 def query(input: str, collection_name: str):
-    doc_store = DocumentStore()
     outside_context = doc_store.query(input, collection_name)
     return {"results": outside_context}
 

@@ -75,7 +75,6 @@ class Ingest:
             metadatas = [d.metadata for d in texts]
             ids = [str(idx) for idx, d in enumerate(texts)]
             self.collection.add(documents=contents, metadatas=metadatas, ids=ids)
-            self.client.persist()
             # split and load into vector db
             print(f"Found {len(data)} parts in file {file_path}")
         except Exception as e:

@@ -161,3 +161,6 @@ cython_debug/
 
 .envrc
 db/
+
+# Ignore anything in the files folder as those are temporary
+files/
