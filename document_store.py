@@ -14,8 +14,8 @@ class DocumentStore:
         self.index_name = "TalkToNist"
         openai.api_key = 'Free the models'
         openai.api_base = os.environ.get('REMOTE_API_URL')
-        self.client = chromadb.Client(Settings(chroma_db_impl='duckdb+parquet', persist_directory="db"))
-        self.load_required = not self.client.get_collection(name="TalkToNist")
+        self.client = chromadb.PersistentClient(path="db")
+        self.load_required = not self.does_collection_exist(collection_name="TalkToNist")
         self.collection = self.client.get_or_create_collection(name="TalkToNist")
         self.ingestor = ingest.Ingest(self.index_name, self.client, self.collection)
         self.summary_model_name = 'facebook/bart-large-cnn'
@@ -25,32 +25,43 @@ class DocumentStore:
         self.chunk_size = 200
         self.overlap_size = 50
 
-    def query(self, query_text):
-        results = self.collection.query(
-            query_texts=[query_text],
-            n_results=3
-        )
+    # Try catch fails if collection cannot be found
+    def does_collection_exist(self, collection_name):
+        try:
+            collection = self.client.get_collection(name=collection_name)
+            if collection.count() > 0:
+                return True
+        except ValueError:
+            return False
+        
+        return False
 
-        docs = [t for t in results['documents'][0]]
-        combined_document = ' '.join(docs)
+    def query(self, query_text, collection_name):
+        if self.does_collection_exist(collection_name):
+            self.collection = self.client.get_collection(name=collection_name)
+            results = self.collection.query(
+                query_texts=[query_text],
+                n_results=3
+            )
 
-        # Split the combined document into overlapping chunks
-        chunks = self.chunk_text(combined_document, self.chunk_size, self.overlap_size)
-        summaries = [self.summarize(chunk) for chunk in chunks]
-        flat_summaries = self.flat_map_summaries(chunks, summaries)
-        combined_summary = ' '.join(flat_summaries)
+            docs = [t for t in results['documents'][0]]
+            combined_document = ' '.join(docs)
 
-        return combined_summary
+            # Split the combined document into overlapping chunks
+            chunks = self.chunk_text(combined_document, self.chunk_size, self.overlap_size)
+            summaries = [self.summarize(chunk) for chunk in chunks]
+            flat_summaries = self.flat_map_summaries(chunks, summaries)
+            combined_summary = ' '.join(flat_summaries)
+
+            return combined_summary
+        else:
+            return None
 
     def flat_map_summaries(self, chunks, summaries):
         flat_summaries = []
         for chunk, summary in zip(chunks, summaries):
             flat_summaries.extend(summary)
         return flat_summaries
-
-    def load_pdf(self, path):
-        if self.load_required:
-            ingest.load_data(self.ingestor, path)
 
     # Function for summarization
     def summarize(self, document, size_multiplier=7):

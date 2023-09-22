@@ -26,3 +26,8 @@ llama_index
 llama-hub
 chromadb
 transformers
+fastapi
+uvicorn[standard]
+torch
+torchvision
+python-multipart
