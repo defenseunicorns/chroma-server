@@ -1,0 +1,26 @@
+kind: ZarfPackageConfig
+metadata:
+  name: chroma-server
+  description: A Zarf package for loading the chroma-server in k8s
+  version: 0.0.2
+
+components:
+  - name: baseline
+    required: true
+    manifests:
+      - name: chroma-server
+        namespace: leapfrogai
+        files:
+          - manifests/deployment.yaml
+          - manifests/service.yaml
+    images:
+      - defenseunicorns/chroma-server
+    actions:
+      onDeploy:
+        after:
+          - wait:
+              cluster:
+                kind: deployment
+                name: chromadb
+                namespace: leapfrogai
+                condition: available
