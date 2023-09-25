@@ -2,8 +2,6 @@ import os
 
 # Chroma
 import chromadb
-import openai
-from chromadb import Settings
 from transformers import BartTokenizer, BartForConditionalGeneration
 
 import ingest
@@ -11,9 +9,7 @@ import ingest
 
 class DocumentStore:
     def __init__(self):
-        self.index_name = "TalkToNist"
-        openai.api_key = 'Free the models'
-        openai.api_base = os.environ.get('REMOTE_API_URL')
+        self.index_name = "default"
         self.client = chromadb.PersistentClient(path="db")
         self.load_required = not self.does_collection_exist(collection_name="default")
         self.collection = self.client.get_or_create_collection(name="default")
