@@ -12,4 +12,3 @@ docker run -i -p 8000:8000 chroma-server
 
 # Settings
 * `debug` in `main.py` turns debug info on and off
-* `maintain_state` in `main.py` will attempt to maintain state between messages
