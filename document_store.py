@@ -15,8 +15,8 @@ class DocumentStore:
         openai.api_key = 'Free the models'
         openai.api_base = os.environ.get('REMOTE_API_URL')
         self.client = chromadb.PersistentClient(path="db")
-        self.load_required = not self.does_collection_exist(collection_name="TalkToNist")
-        self.collection = self.client.get_or_create_collection(name="TalkToNist")
+        self.load_required = not self.does_collection_exist(collection_name="default")
+        self.collection = self.client.get_or_create_collection(name="default")
         self.ingestor = ingest.Ingest(self.index_name, self.client, self.collection)
         self.summary_model_name = 'facebook/bart-large-cnn'
         self.summary_tokenizer = BartTokenizer.from_pretrained(self.summary_model_name)
