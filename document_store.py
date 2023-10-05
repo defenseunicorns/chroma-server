@@ -1,8 +1,5 @@
-import os
-
-# Chroma
 import chromadb
-from transformers import BartTokenizer, BartForConditionalGeneration
+from transformers import BartForConditionalGeneration, BartTokenizer
 
 import ingest
 
@@ -52,6 +49,10 @@ class DocumentStore:
             return combined_summary
         else:
             return None
+
+    def load_pdf(self, path):
+        if self.load_required:
+            ingest.load_data(self.ingestor, path)
 
     def flat_map_summaries(self, chunks, summaries):
         flat_summaries = []

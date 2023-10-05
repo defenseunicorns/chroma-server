@@ -1,6 +1,9 @@
 import sys
-from fastapi import FastAPI, UploadFile
+from fastapi import FastAPI, Request, UploadFile, status
+from fastapi.encoders import jsonable_encoder
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 import uvicorn
@@ -13,10 +16,12 @@ debug = False
 app = FastAPI()
 
 doc_store = DocumentStore()
+doc_store.load_pdf("./data/")
 
 origins = [
     "http://localhost",
     "http://localhost:3000",
+    "http://localhost:5173",
 ]
 
 app.add_middleware(
@@ -33,16 +38,27 @@ class QueryModel(BaseModel):
 
 @app.post("/upload/")
 async def upload(file: UploadFile):
-    debug(file.filename)
-    contents = await file.read()
-    file_path = "files/" + file.filename
-    if not os.path.isfile(file_path):
-        new_file = open(file_path, "xb")
-        new_file.write(contents)
-    doc_store.ingestor.process_file(file_path)
-    os.remove(file_path)
+    try:
+        debug("Received file: " + file.filename)
+        contents = await file.read()
+        file_path = "files/" + file.filename
+        if not os.path.isfile(file_path):
+            new_file = open(file_path, "xb")
+            new_file.write(contents)
+        doc_store.ingestor.process_file(file_path)
+        os.remove(file_path)
+    except Exception:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail='There was an error uploading the file',
+        )
+    finally:
+        await file.close()
+
     return {"filename": file.filename,
             "succeed": True}
+
+
 
 @app.post("/query/")
 def query(query_data: QueryModel):
@@ -50,6 +66,10 @@ def query(query_data: QueryModel):
     outside_context = doc_store.query(query_data.input, query_data.collection_name)
     debug("The returned context is: " + outside_context)
     return {"results": outside_context}
+
+@app.get("/health/", status_code=200)
+def health():
+    return {}
 
 def debug(message):
     if debug:
